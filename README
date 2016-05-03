@@ -1,0 +1,58 @@
+Implementation notes
+====================
+Bottleneck of the implementation is the managing calculation results storage -- CSV file.
+I believe service performance will degrade pretty fast with the increase of file size.
+I have implementedit as it is because of two next reasons: one CSV file was defined
+by specification, it was much simpler to implement it this way (and I believe it is ok
+for a test task), rather than trying to make some optimizations, like sharding or something.
+
+Run
+===
+Application can be run with the following command.
+$ mvn exec:java
+
+
+Client's dialog example
+=======================
+
+[vchimishuk@latitude /tmp] $ cat newground-source.properties
+10,20,30,40,50,60,70,80,90,100
+[vchimishuk@latitude /tmp] $ cat newground-calculations.properties
+[vchimishuk@latitude /tmp] $ curl -X POST -H 'Content-Type: application/xml' -d '
+<request>
+        <source>5</source>
+        <destination>0</destination>
+        <number>12.3</number>
+</request>
+' 'http://localhost:8888/numbers'
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><valueResult><value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">false</value></valueResult>
+[vchimishuk@latitude /tmp] $ cat newground-calculations.properties
+72.3
+[vchimishuk@latitude /tmp] $ curl -X POST -H 'Content-Type: application/xml' -d '
+<request>
+        <source>0</source>
+        <destination>15</destination>
+        <number>12.3</number>
+</request>
+' 'http://localhost:8888/numbers'
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><valueResult><value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">false</value></valueResult>
+[vchimishuk@latitude /tmp] $ cat newground-calculations.properties
+72.3,,,,,,,,,,,,,,22.3
+[vchimishuk@latitude /tmp] $ curl -X GET http://localhost:8888/numbers/0
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><valueResult><value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:decimal">62.3</value></valueResult>
+[vchimishuk@latitude /tmp] $ curl -X POST -H 'Content-Type: application/xml' -d '
+<request>
+        <source>0</source>
+        <destination>10</destination>
+        <number>12.3</number>
+</request>
+' 'http://localhost:8888/numbers'
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><valueResult><value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">false</value></valueResult>
+[vchimishuk@latitude /tmp] $ cat newground-calculations.properties
+72.3,,,,,,,,,,22.3,,,,22.3
+[vchimishuk@latitude /tmp] $ curl -X GET http://localhost:8888/numbers/10
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><valueResult><value xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:decimal">12.3</value></valueResult>
+[vchimishuk@latitude /tmp] $
